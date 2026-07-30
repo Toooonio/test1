@@ -5,13 +5,13 @@ import { LoopingVideo } from "./LoopingVideo";
 
 const SERVICES = [
   {
-    video: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4",
+    video: `${import.meta.env.BASE_URL}media/strategy.mp4`,
     tag: "Strategy",
     title: "探索与洞察",
     description: "从评论、卖点和消费者痛点中提炼问题，也反复校准 Prompt、模型和接口。好的工具始于足够清晰的观察。",
   },
   {
-    video: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260324_151826_c7218672-6e92-402c-9e45-f1e0f454bdc4.mp4",
+    video: `${import.meta.env.BASE_URL}media/craft.mp4`,
     tag: "Craft",
     title: "设计与落地",
     description: "新规文案输出、Amazon BSR 抓取扩展与更多实用小工具。该省省、该花花，用更合适的实现把想法真正交到用户手中。",
