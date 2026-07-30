@@ -1,6 +1,7 @@
 import { ArrowUpRight, Mail, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { Reveal } from "./Reveal";
+import { LoopingVideo } from "./LoopingVideo";
 
 const SERVICES = [
   {
@@ -27,7 +28,7 @@ export function ServicesSection() {
           {SERVICES.map((service, index) => (
             <Reveal key={service.title} delay={index * 0.15}>
               <article className="liquid-glass group overflow-hidden rounded-3xl">
-                <div className="aspect-video overflow-hidden"><video className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" muted autoPlay loop playsInline preload="auto"><source src={service.video} type="video/mp4" /></video></div>
+                <div className="aspect-video overflow-hidden"><LoopingVideo className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" src={service.video} /></div>
                 <div className="p-6 md:p-8"><div className="mb-8 flex items-center justify-between"><p className="text-xs uppercase tracking-[0.2em] text-white/40">{service.tag}</p><motion.div whileHover={{ scale: 1.08 }} className="liquid-glass grid size-9 place-items-center rounded-full text-white"><ArrowUpRight size={17} /></motion.div></div><h3 className="mb-3 text-xl tracking-tight text-white md:text-2xl">{service.title}</h3><p className="text-sm leading-relaxed text-white/50">{service.description}</p></div>
               </article>
             </Reveal>

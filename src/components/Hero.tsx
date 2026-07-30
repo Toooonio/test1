@@ -1,5 +1,5 @@
 import { ArrowRight, Camera, Globe2, Send } from "lucide-react";
-import { FormEvent, useEffect, useRef } from "react";
+import { FormEvent, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
 const HERO_VIDEO =
@@ -17,37 +17,53 @@ function animateOpacity(element: HTMLVideoElement, from: number, to: number, dur
 
 export function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const revealedRef = useRef(false);
+  const fadingOutRef = useRef(false);
+
+  const revealVideo = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || revealedRef.current) return;
+    revealedRef.current = true;
+    video.muted = true;
+    video.defaultMuted = true;
+    void video.play().catch(() => undefined);
+    animateOpacity(video, Number(video.style.opacity || 0), 1);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const onCanPlay = () => {
-      void video.play().catch(() => undefined);
-      animateOpacity(video, 0, 1);
-    };
+    const onCanPlay = () => revealVideo();
     const onTimeUpdate = () => {
-      if (video.duration - video.currentTime <= 0.55 && Number(video.style.opacity || 1) > 0) {
+      if (!fadingOutRef.current && video.duration - video.currentTime <= 0.55 && Number(video.style.opacity || 1) > 0) {
+        fadingOutRef.current = true;
         animateOpacity(video, Number(video.style.opacity || 1), 0);
       }
     };
     const onEnded = () => {
       video.style.opacity = "0";
+      fadingOutRef.current = false;
       window.setTimeout(() => {
         video.currentTime = 0;
-        void video.play().then(() => animateOpacity(video, 0, 1)).catch(() => undefined);
+        void video.play().finally(() => animateOpacity(video, 0, 1));
       }, 100);
     };
 
-    video.addEventListener("canplay", onCanPlay, { once: true });
+    video.addEventListener("canplay", onCanPlay);
     video.addEventListener("timeupdate", onTimeUpdate);
     video.addEventListener("ended", onEnded);
+    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) onCanPlay();
+
+    // Do not leave the hero invisible on mobile browsers that defer media events.
+    const fallbackTimer = window.setTimeout(revealVideo, 900);
     return () => {
       video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("timeupdate", onTimeUpdate);
       video.removeEventListener("ended", onEnded);
+      window.clearTimeout(fallbackTimer);
     };
-  }, []);
+  }, [revealVideo]);
 
   const scrollToWork = (event: FormEvent) => {
     event.preventDefault();
@@ -56,7 +72,8 @@ export function Hero() {
 
   return (
     <section className="relative flex min-h-screen flex-col overflow-hidden">
-      <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover object-bottom opacity-0" muted autoPlay playsInline preload="auto">
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,_#0a0a0a_0%,_#1a2020_48%,_#050505_100%)]" />
+      <video ref={videoRef} onCanPlay={revealVideo} className="absolute inset-0 h-full w-full object-cover object-bottom opacity-0" muted autoPlay playsInline preload="auto">
         <source src={HERO_VIDEO} type="video/mp4" />
       </video>
       <div className="absolute inset-0 bg-black/30" />
