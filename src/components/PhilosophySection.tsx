@@ -1,7 +1,7 @@
 import { Reveal } from "./Reveal";
 import { LoopingVideo } from "./LoopingVideo";
 
-const PHILOSOPHY_VIDEO = `${import.meta.env.BASE_URL}media/philosophy.mp4`;
+const PHILOSOPHY_VIDEO = `${import.meta.env.BASE_URL}media/mobile/philosophy.mp4`;
 
 export function PhilosophySection() {
   return (

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { LoopingVideo } from "./LoopingVideo";
 import { Reveal } from "./Reveal";
 
-const FEATURED_VIDEO = `${import.meta.env.BASE_URL}media/approach.mp4`;
+const FEATURED_VIDEO = `${import.meta.env.BASE_URL}media/mobile/approach.mp4`;
 
 export function FeaturedVideoSection() {
   return (

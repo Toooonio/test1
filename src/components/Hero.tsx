@@ -2,7 +2,7 @@ import { ArrowRight, Camera, Globe2, Send } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
-const HERO_VIDEO = `${import.meta.env.BASE_URL}media/hero.mp4`;
+const HERO_VIDEO = `${import.meta.env.BASE_URL}media/mobile/hero.mp4`;
 
 function animateOpacity(element: HTMLVideoElement, from: number, to: number, duration = 500) {
   const start = performance.now();

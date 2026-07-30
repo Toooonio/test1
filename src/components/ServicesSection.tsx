@@ -5,13 +5,13 @@ import { LoopingVideo } from "./LoopingVideo";
 
 const SERVICES = [
   {
-    video: `${import.meta.env.BASE_URL}media/strategy.mp4`,
+    video: `${import.meta.env.BASE_URL}media/mobile/strategy.mp4`,
     tag: "Strategy",
     title: "探索与洞察",
     description: "从评论、卖点和消费者痛点中提炼问题，也反复校准 Prompt、模型和接口。好的工具始于足够清晰的观察。",
   },
   {
-    video: `${import.meta.env.BASE_URL}media/craft.mp4`,
+    video: `${import.meta.env.BASE_URL}media/mobile/craft.mp4`,
     tag: "Craft",
     title: "设计与落地",
     description: "新规文案输出、Amazon BSR 抓取扩展与更多实用小工具。该省省、该花花，用更合适的实现把想法真正交到用户手中。",
