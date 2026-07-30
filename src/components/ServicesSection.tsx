@@ -6,12 +6,14 @@ import { LoopingVideo } from "./LoopingVideo";
 const SERVICES = [
   {
     video: `${import.meta.env.BASE_URL}media/mobile/strategy.mp4`,
+    poster: `${import.meta.env.BASE_URL}media/posters/strategy.jpg`,
     tag: "Strategy",
     title: "探索与洞察",
     description: "从评论、卖点和消费者痛点中提炼问题，也反复校准 Prompt、模型和接口。好的工具始于足够清晰的观察。",
   },
   {
     video: `${import.meta.env.BASE_URL}media/mobile/craft.mp4`,
+    poster: `${import.meta.env.BASE_URL}media/posters/craft.jpg`,
     tag: "Craft",
     title: "设计与落地",
     description: "新规文案输出、Amazon BSR 抓取扩展与更多实用小工具。该省省、该花花，用更合适的实现把想法真正交到用户手中。",
@@ -28,7 +30,7 @@ export function ServicesSection() {
           {SERVICES.map((service, index) => (
             <Reveal key={service.title} delay={index * 0.15}>
               <article className="liquid-glass group overflow-hidden rounded-3xl">
-                <div className="aspect-video overflow-hidden"><LoopingVideo className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" src={service.video} /></div>
+                <div className="aspect-video overflow-hidden"><LoopingVideo className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" src={service.video} poster={service.poster} /></div>
                 <div className="p-6 md:p-8"><div className="mb-8 flex items-center justify-between"><p className="text-xs uppercase tracking-[0.2em] text-white/40">{service.tag}</p><motion.div whileHover={{ scale: 1.08 }} className="liquid-glass grid size-9 place-items-center rounded-full text-white"><ArrowUpRight size={17} /></motion.div></div><h3 className="mb-3 text-xl tracking-tight text-white md:text-2xl">{service.title}</h3><p className="text-sm leading-relaxed text-white/50">{service.description}</p></div>
               </article>
             </Reveal>

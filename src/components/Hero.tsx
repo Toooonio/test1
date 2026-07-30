@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
 const HERO_VIDEO = `${import.meta.env.BASE_URL}media/mobile/hero.mp4`;
+const HERO_POSTER = `${import.meta.env.BASE_URL}media/posters/hero.jpg`;
 
 function animateOpacity(element: HTMLVideoElement, from: number, to: number, duration = 500) {
   const start = performance.now();
@@ -19,13 +20,18 @@ export function Hero() {
   const revealedRef = useRef(false);
   const fadingOutRef = useRef(false);
 
+  const startVideo = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    video.defaultMuted = true;
+    void video.play().catch(() => undefined);
+  }, []);
+
   const revealVideo = useCallback(() => {
     const video = videoRef.current;
     if (!video || revealedRef.current) return;
     revealedRef.current = true;
-    video.muted = true;
-    video.defaultMuted = true;
-    void video.play().catch(() => undefined);
     animateOpacity(video, Number(video.style.opacity || 0), 1);
   }, []);
 
@@ -33,7 +39,7 @@ export function Hero() {
     const video = videoRef.current;
     if (!video) return;
 
-    const onCanPlay = () => revealVideo();
+    const onCanPlay = () => startVideo();
     const onTimeUpdate = () => {
       if (!fadingOutRef.current && video.duration - video.currentTime <= 0.55 && Number(video.style.opacity || 1) > 0) {
         fadingOutRef.current = true;
@@ -42,10 +48,11 @@ export function Hero() {
     };
     const onEnded = () => {
       video.style.opacity = "0";
+      revealedRef.current = false;
       fadingOutRef.current = false;
       window.setTimeout(() => {
         video.currentTime = 0;
-        void video.play().finally(() => animateOpacity(video, 0, 1));
+        void video.play();
       }, 100);
     };
 
@@ -65,7 +72,7 @@ export function Hero() {
       document.removeEventListener("WeixinJSBridgeReady", onCanPlay as EventListener);
       window.removeEventListener("touchstart", onCanPlay);
     };
-  }, [revealVideo]);
+  }, [startVideo]);
 
   const scrollToWork = (event: FormEvent) => {
     event.preventDefault();
@@ -75,7 +82,8 @@ export function Hero() {
   return (
     <section className="relative flex min-h-screen flex-col overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(135deg,_#0a0a0a_0%,_#1a2020_48%,_#050505_100%)]" />
-      <video ref={videoRef} onCanPlay={revealVideo} onClick={revealVideo} className="absolute inset-0 h-full w-full object-cover object-bottom opacity-0" muted autoPlay playsInline preload="auto">
+      <img src={HERO_POSTER} alt="" className="absolute inset-0 h-full w-full object-cover object-bottom" />
+      <video ref={videoRef} poster={HERO_POSTER} onCanPlay={startVideo} onPlaying={revealVideo} onClick={startVideo} className="absolute inset-0 h-full w-full object-cover object-bottom opacity-0" muted autoPlay playsInline preload="auto">
         <source src={HERO_VIDEO} type="video/mp4" />
       </video>
       <div className="absolute inset-0 bg-black/30" />
