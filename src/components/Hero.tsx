@@ -53,14 +53,17 @@ export function Hero() {
     video.addEventListener("timeupdate", onTimeUpdate);
     video.addEventListener("ended", onEnded);
     if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) onCanPlay();
-
-    // Do not leave the hero invisible on mobile browsers that defer media events.
-    const fallbackTimer = window.setTimeout(revealVideo, 900);
+    video.setAttribute("webkit-playsinline", "true");
+    video.setAttribute("x5-playsinline", "true");
+    video.setAttribute("x5-video-player-type", "h5-page");
+    document.addEventListener("WeixinJSBridgeReady", onCanPlay as EventListener);
+    window.addEventListener("touchstart", onCanPlay, { once: true, passive: true });
     return () => {
       video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("timeupdate", onTimeUpdate);
       video.removeEventListener("ended", onEnded);
-      window.clearTimeout(fallbackTimer);
+      document.removeEventListener("WeixinJSBridgeReady", onCanPlay as EventListener);
+      window.removeEventListener("touchstart", onCanPlay);
     };
   }, [revealVideo]);
 
@@ -72,7 +75,7 @@ export function Hero() {
   return (
     <section className="relative flex min-h-screen flex-col overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(135deg,_#0a0a0a_0%,_#1a2020_48%,_#050505_100%)]" />
-      <video ref={videoRef} onCanPlay={revealVideo} className="absolute inset-0 h-full w-full object-cover object-bottom opacity-0" muted autoPlay playsInline preload="auto">
+      <video ref={videoRef} onCanPlay={revealVideo} onClick={revealVideo} className="absolute inset-0 h-full w-full object-cover object-bottom opacity-0" muted autoPlay playsInline preload="auto">
         <source src={HERO_VIDEO} type="video/mp4" />
       </video>
       <div className="absolute inset-0 bg-black/30" />
