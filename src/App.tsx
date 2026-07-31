@@ -1,17 +1,11 @@
-import { AboutSection } from "./components/AboutSection";
-import { FeaturedVideoSection } from "./components/FeaturedVideoSection";
 import { Hero } from "./components/Hero";
-import { PhilosophySection } from "./components/PhilosophySection";
-import { ServicesSection } from "./components/ServicesSection";
+import { StorySections } from "./components/StorySections";
 
 export default function App() {
   return (
-    <main className="bg-black text-white selection:bg-white selection:text-black">
+    <main className="bg-[#10100f] text-white selection:bg-[#e8702a] selection:text-white">
       <Hero />
-      <AboutSection />
-      <FeaturedVideoSection />
-      <PhilosophySection />
-      <ServicesSection />
+      <StorySections />
     </main>
   );
 }
