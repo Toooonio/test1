@@ -1,135 +1,179 @@
+import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const ASSETS = {
-  sky: "https://raft-blast-61784561.figma.site/_assets/v11/16b5007d9c93971e26ffe4e0e3e37946f6bd538c.png",
-  glow: "https://raft-blast-61784561.figma.site/_assets/v11/8a7f8af50e0ce92ec2e228e7b0b4112178c51cf1.png",
-  bazaar: "https://raft-blast-61784561.figma.site/_assets/v11/864afe00e41e2fa20a5aa546e15cb807e0f81384.png",
-  left: "https://raft-blast-61784561.figma.site/_assets/v11/7536d7b60a1fce482cf6edf3f0bffd3bad5d0f8a.png",
-  right: "https://raft-blast-61784561.figma.site/_assets/v11/392db6a6a6b98e868bd7f8d3f55bb719d51e5028.png",
-  bridge: "https://raft-blast-61784561.figma.site/_assets/v11/c6a6d8ef49bca43f708aa852692942c45ec950d4.png",
-  river: "https://raft-blast-61784561.figma.site/_assets/v11/ba75252bab2b1c510987b74837770f7bc8a6b2d4.png",
-  icons: [
-    "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260730_230438_d526b8b6-8a2e-4e3b-9993-3908acae03a7.png",
-    "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260730_230442_140bc25b-b165-4249-904a-f708bff6970e.png",
-    "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260730_230448_825949c9-ccdb-4857-b4a6-e349eccc9010.png",
-  ],
-};
-
 const projects = [
-  ["第一个 MVP", "今天吃什么", "从 GitHub 复制上传代码开始，把第一个想法做成静态页面。", 0],
-  ["动态逻辑", "无畏契约选择器", "英雄随机选择，以及不同经济局的技能与装备推荐。", 1],
-  ["低代码试错", "Coze", "费用过高、国内模型受限，也难以承载复杂动态需求。", 2],
-  ["实用工具", "新规文案输出", "从设计试验走向能被真实使用的小工具。", 0],
-  ["零成本破局", "Amazon BSR 抓取", "Chrome 扩展中转反爬流程，主打该省省、该花花。", 1],
+  ["MVP / STATIC", "今天吃什么", "从 GitHub 复制上传代码开始，把第一个想法做成静态页面。"],
+  ["GAME / LOGIC", "无畏契约选择器", "英雄随机选择，以及不同经济局的技能与装备推荐。"],
+  ["AGENT / TRIAL", "Coze 试错", "费用过高、国内模型受限，也难以承载复杂动态需求。"],
+  ["TOOL / OUTPUT", "新规文案输出", "从设计试验走向真正能被大家使用的小工具。"],
+  ["EXTENSION / BSR", "Amazon BSR 抓取", "Chrome 扩展中转反爬流程，主打该省省、该花花。"],
 ] as const;
 
-const clamp = (v: number, min = 0, max = 1) => Math.min(max, Math.max(min, v));
-const smoothstep = (e0: number, e1: number, v: number) => { const x = clamp((v - e0) / (e1 - e0)); return x * x * (3 - 2 * x); };
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const segmentInOut = (s: number, a: number, b: number, c: number, d: number) => { const enter = smoothstep(a, b, s); const exit = smoothstep(c, d, s); return { enter, exit, active: enter * (1 - exit) }; };
+const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+const smoothstep = (start: number, end: number, value: number) => {
+  const x = clamp((value - start) / (end - start));
+  return x * x * (3 - 2 * x);
+};
+const segment = (value: number, enterStart: number, enterEnd: number, exitStart: number, exitEnd: number) => {
+  const enter = smoothstep(enterStart, enterEnd, value);
+  const exit = smoothstep(exitStart, exitEnd, value);
+  return enter * (1 - exit);
+};
 
-export function CinematicPage() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const controlsRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef(0);
-  const rafPending = useRef(false);
-  const state = useRef({ targetMouseX: 0, targetMouseY: 0, mouseX: 0, mouseY: 0, targetScroll: 0, smoothScroll: 0, initialized: false });
-  const [activeSight, setActiveSight] = useState<number>(projects.length);
-  const cards = useMemo(() => Array.from({ length: 3 }, (_, setIndex) => projects.map((project, cardIndex) => ({ project, index: setIndex * projects.length + cardIndex }))).flat(), []);
+function FlowLines() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const updateSlider = useCallback((index: number, jumping = false) => {
-    const track = trackRef.current;
-    if (!track) return;
-    const card = track.querySelector<HTMLElement>(".sight-card");
-    if (!card) return;
-    const gap = parseFloat(getComputedStyle(track).columnGap || "0");
-    if (jumping) track.classList.add("is-jumping");
-    document.documentElement.style.setProperty("--sights-shift", `${-(card.offsetWidth + gap) * index}px`);
-    setActiveSight(index);
-    if (jumping) requestAnimationFrame(() => requestAnimationFrame(() => track.classList.remove("is-jumping")));
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    let width = 0;
+    let height = 0;
+    let time = 0;
+    let frame = 0;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const resize = () => {
+      const ratio = Math.min(devicePixelRatio, 2);
+      width = innerWidth;
+      height = innerHeight;
+      canvas.width = width * ratio;
+      canvas.height = height * ratio;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    };
+    const draw = () => {
+      context.clearRect(0, 0, width, height);
+      for (let row = 0; row < 6; row += 1) {
+        context.beginPath();
+        for (let x = -90; x < width + 90; x += 14) {
+          const y = height * (0.2 + row * 0.12) + Math.sin(x * 0.008 + time + row) * 18 + Math.cos(x * 0.017 - time * 0.7) * 9;
+          if (x === -90) context.moveTo(x, y); else context.lineTo(x, y);
+        }
+        context.strokeStyle = row % 2 ? "rgba(153,183,255,.17)" : "rgba(242,163,182,.11)";
+        context.lineWidth = 1;
+        context.stroke();
+      }
+      if (!reduced) { time += 0.007; frame = requestAnimationFrame(draw); }
+    };
+    resize();
+    draw();
+    addEventListener("resize", resize);
+    return () => { removeEventListener("resize", resize); cancelAnimationFrame(frame); };
   }, []);
 
-  const normalizeSlider = useCallback(() => {
-    if (activeSight >= projects.length * 2) updateSlider(activeSight - projects.length, true);
-    else if (activeSight < projects.length) updateSlider(activeSight + projects.length, true);
-  }, [activeSight, updateSlider]);
+  return <canvas ref={canvasRef} className="field-lines" aria-hidden="true" />;
+}
 
-  const requestTick = useCallback(() => {
-    if (rafPending.current) return;
-    rafPending.current = true;
-    frameRef.current = requestAnimationFrame(() => {
-      rafPending.current = false;
-      const section = sectionRef.current;
-      if (!section) return;
-      const root = document.documentElement;
-      const s = state.current;
-      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-      s.targetScroll = clamp(-section.getBoundingClientRect().top, 0, section.offsetHeight - innerHeight);
-      if (!s.initialized || reduced) { s.smoothScroll = s.targetScroll; s.initialized = true; } else s.smoothScroll = lerp(s.smoothScroll, s.targetScroll, 0.14);
-      if (Math.abs(s.smoothScroll - s.targetScroll) < 0.08) s.smoothScroll = s.targetScroll;
-      s.mouseX = lerp(s.mouseX, s.targetMouseX, 0.12); s.mouseY = lerp(s.mouseY, s.targetMouseY, 0.12);
-      const scroll = s.smoothScroll;
-      const frame2 = segmentInOut(scroll, 560, 900, 1300, 1620);
-      const frame3 = segmentInOut(scroll, 1760, 2140, 2540, 2700);
-      const progress = clamp(scroll / 2700);
-      const introExit = smoothstep(90, 650, scroll);
-      const sightsEnter = Math.pow(smoothstep(2760, 3560, scroll), 1.55);
-      const controlsEnter = smoothstep(3360, 3660, scroll);
-      const blurActive = clamp(frame2.active + frame3.active);
-      const splitDrift = Math.pow(frame2.enter, 1.5);
-      const backScale = 0.76 + progress * 0.2 + frame2.enter * 0.18 + frame3.enter * 0.16;
-      const sharedHeroY = progress * -74;
-      const sharedHeroScale = progress * 0.23;
-      const sightsScreenTop = Math.min(220, Math.max(112, innerHeight * 0.19)) - 50;
-      const sightsParentTop = innerHeight - (innerHeight - sightsScreenTop) / backScale;
-      const mx = reduced ? 0 : s.mouseX, my = reduced ? 0 : s.mouseY;
-      const set = (name: string, value: string | number) => root.style.setProperty(name, String(value));
-      set("--mx", mx.toFixed(4)); set("--my", my.toFixed(4));
-      set("--back-opacity", (1 - frame2.active * 0.06).toFixed(4)); set("--back-x", `${mx * -12}px`); set("--back-y", `${my * -4}px`); set("--back-scale", backScale.toFixed(4));
-      set("--four-y", `${10 + progress * 10}vh`); set("--four-scale", (0.78 + progress * 0.16).toFixed(4)); set("--bazaar-y", `${20 - progress * 8}vh`);
-      set("--blur-px", `${blurActive * 14}px`); set("--back-brightness", (1 - blurActive * 0.255).toFixed(4)); set("--bazaar-blur-px", `${frame2.active * 14}px`); set("--bazaar-brightness", (1 - frame2.active * 0.255 - frame3.active * 0.06).toFixed(4)); set("--bazaar-saturation", (1 + frame3.active * 0.18).toFixed(4));
-      set("--shade-z", frame2.active > 0.02 ? "2" : "0"); set("--shade-top-alpha", (blurActive * 0.465).toFixed(4)); set("--shade-mid-alpha", (blurActive * 0.42).toFixed(4)); set("--shade-bottom-alpha", (blurActive * 0.51).toFixed(4));
-      set("--title-y", `${introExit * -210}px`); set("--title-scale", (1 - introExit * 0.08).toFixed(4)); set("--title-opacity", (1 - introExit).toFixed(4));
-      set("--bridge-x", `calc(-50% + ${mx * 18}px)`); set("--bridge-y", `${my * 8 + sharedHeroY - frame2.exit * 760}px`); set("--bridge-bottom", `${5 - frame2.enter * 13}vh`); set("--bridge-width", `${67.2 + frame2.enter * 37.8}vw`); set("--bridge-scale", (1.02 + sharedHeroScale + frame2.exit * 0.46).toFixed(4));
-      set("--split-left-x", `calc(-50% + ${-splitDrift * 46}vw + ${mx * 22}px)`); set("--split-left-y", `${my * 10 + sharedHeroY - splitDrift * 180}px`); set("--split-left-scale", (1 + sharedHeroScale + frame2.enter * 0.74).toFixed(4));
-      set("--split-right-x", `calc(-50% + ${splitDrift * 46}vw + ${mx * 22}px)`); set("--split-right-y", `${my * 10 + sharedHeroY - splitDrift * 180}px`); set("--split-right-scale", (1 + sharedHeroScale + frame2.enter * 0.74).toFixed(4));
-      set("--frame2-opacity", (frame2.active * (1 - frame3.enter)).toFixed(4)); set("--frame2-x", `calc(-50% + ${mx * 10}px)`); set("--frame2-y", `calc(-50% + ${my * 8 - frame2.exit * 150}px)`); set("--frame2-scale", (1.06 + frame2.enter * 0.08 + frame2.exit * 0.08).toFixed(4));
-      set("--intro-copy-y", `${introExit * 90}px`); set("--intro-copy-opacity", (1 - introExit).toFixed(4)); set("--panel2-opacity", (frame2.active * (1 - frame2.exit)).toFixed(4)); set("--panel2-y", `calc(-50% + ${-frame2.exit * 86 + (1 - frame2.enter) * 58}px)`); set("--panel3-opacity", (frame3.active * (1 - frame3.exit)).toFixed(4)); set("--panel3-y", `calc(-50% + ${-frame3.exit * 86 + (1 - frame3.enter) * 58}px)`);
-      set("--sights-controls-opacity", controlsEnter.toFixed(4)); controlsRef.current?.classList.toggle("is-ready", controlsEnter > 0.98); set("--sights-visibility", sightsEnter > 0.01 ? "visible" : "hidden"); set("--sights-enter-x", `${(1 - sightsEnter) * 420}vw`); set("--sights-scale", (1 / backScale).toFixed(4)); set("--sights-top", `${sightsParentTop}px`); set("--sights-screen-top", `${sightsScreenTop}px`);
-      if (Math.abs(s.smoothScroll - s.targetScroll) > 0.08 || Math.abs(s.mouseX - s.targetMouseX) > 0.001 || Math.abs(s.mouseY - s.targetMouseY) > 0.001) requestTick();
-    });
+export function CinematicPage() {
+  const sceneRef = useRef<HTMLElement>(null);
+  const frameRef = useRef(0);
+  const [active, setActive] = useState<number>(projects.length);
+  const [trackX, setTrackX] = useState(0);
+  const [jumping, setJumping] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const cards = useMemo(() => Array.from({ length: 3 }, (_, group) => projects.map((project, index) => ({ project, index: group * projects.length + index }))).flat(), []);
+
+  const updateSlider = useCallback((index: number, instant = false) => {
+    const card = trackRef.current?.querySelector<HTMLElement>(".field-card");
+    if (!card || !trackRef.current) return;
+    const gap = parseFloat(getComputedStyle(trackRef.current).columnGap || "0");
+    if (instant) setJumping(true);
+    setActive(index);
+    setTrackX(-(card.offsetWidth + gap) * index);
+    if (instant) requestAnimationFrame(() => requestAnimationFrame(() => setJumping(false)));
+  }, []);
+
+  const normalize = () => {
+    if (active >= projects.length * 2) updateSlider(active - projects.length, true);
+    else if (active < projects.length) updateSlider(active + projects.length, true);
+  };
+
+  useEffect(() => {
+    updateSlider(projects.length, true);
+    const resize = () => updateSlider(active, true);
+    addEventListener("resize", resize);
+    return () => removeEventListener("resize", resize);
   }, []);
 
   useEffect(() => {
-    const scroll = () => requestTick();
-    const resize = () => { updateSlider(activeSight); requestTick(); };
-    const pointer = (event: PointerEvent) => { state.current.targetMouseX = event.clientX / innerWidth - 0.5; state.current.targetMouseY = event.clientY / innerHeight - 0.5; requestTick(); };
-    addEventListener("scroll", scroll, { passive: true }); addEventListener("resize", resize); addEventListener("pointermove", pointer, { passive: true });
-    updateSlider(activeSight); requestTick();
-    return () => { removeEventListener("scroll", scroll); removeEventListener("resize", resize); removeEventListener("pointermove", pointer); cancelAnimationFrame(frameRef.current); };
-  }, [activeSight, requestTick, updateSlider]);
+    const update = () => {
+      frameRef.current = 0;
+      const scene = sceneRef.current;
+      if (!scene) return;
+      const distance = clamp(-scene.getBoundingClientRect().top, 0, scene.offsetHeight - innerHeight);
+      const heroOut = smoothstep(120, 780, distance);
+      const thesis = segment(distance, 540, 980, 1380, 1720);
+      const journey = segment(distance, 1450, 1880, 2450, 2780);
+      const future = segment(distance, 2500, 2850, 3160, 3430);
+      const slider = smoothstep(3180, 3820, distance);
+      const progress = clamp(distance / 3900);
+      scene.style.setProperty("--scene-progress", progress.toFixed(4));
+      scene.style.setProperty("--hero-out", heroOut.toFixed(4));
+      scene.style.setProperty("--thesis-in", thesis.toFixed(4));
+      scene.style.setProperty("--journey-in", journey.toFixed(4));
+      scene.style.setProperty("--future-in", future.toFixed(4));
+      scene.style.setProperty("--slider-in", slider.toFixed(4));
+    };
+    const request = () => { if (!frameRef.current) frameRef.current = requestAnimationFrame(update); };
+    addEventListener("scroll", request, { passive: true });
+    update();
+    return () => { removeEventListener("scroll", request); cancelAnimationFrame(frameRef.current); };
+  }, []);
 
-  const move = (direction: number) => updateSlider(activeSight + direction);
+  const goTo = (distance: number) => {
+    const scene = sceneRef.current;
+    if (scene) scrollTo({ top: scene.offsetTop + distance, behavior: "smooth" });
+  };
 
-  return <main className="site-shell">
-    <section ref={sectionRef} className="cinema-scroll" id="cinema" aria-label="Tonio Yang cinematic scroll story">
-      <div className="stage"><div className="world">
-        <img className="scene-img sky-img" src={ASSETS.sky} alt="" />
-        <header className="site-header"><a className="site-logo" href="#cinema">Tonio.Yang</a><nav className="site-nav"><a href="#cinema">理解</a><a href="#early">前期</a><a href="#build">中期</a><a href="#future">未来</a></nav><a className="language-switcher" href="mailto:317946126@qq.com"><span>联系</span><span aria-hidden="true">↗</span></a></header>
-        <div className="back-stack">
-          <img className="scene-img back-img back-four" src={ASSETS.glow} alt="" />
-          <section className="sights-slider" aria-label="个人项目滑动列表"><div ref={trackRef} className="sights-track" onTransitionEnd={normalizeSlider}>{cards.map(({ project, index }) => <article key={index} tabIndex={0} role="button" aria-label={`查看${project[1]}`} onClick={() => updateSlider(index)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateSlider(index); } }} className={`sight-card ${activeSight === index ? "is-active" : ""}`}><span className="sight-kicker">{project[0]}</span><img className="sight-pin" src={ASSETS.icons[project[3]]} alt="" /><h3>{project[1]}</h3><p>{project[2]}</p></article>)}</div></section>
-          <img className="scene-img back-img back-bazaar" src={ASSETS.bazaar} alt="" />
-        </div>
-        <div ref={controlsRef} className="sights-controls" aria-label="项目滑动控制"><button className="sight-nav" onClick={() => move(-1)} aria-label="上一个项目">←</button><button className="sight-nav" onClick={() => move(1)} aria-label="下一个项目">→</button></div>
-        <h1 className="hero-title">TONIO</h1>
-        <img className="scene-img splitframe-img splitframe-left" src={ASSETS.left} alt="" /><img className="scene-img splitframe-img splitframe-right" src={ASSETS.right} alt="" /><img className="scene-img bridge-img" src={ASSETS.bridge} alt="" /><img className="scene-img frame-two-img" src={ASSETS.river} alt="" /><div className="shade" />
-        <section className="intro-copy"><p>用 Precision 构建逻辑，用 Sensibility 感受生活。把想法做完整，也让体验真正被感知。</p><div className="hero-tags"><span>Precision</span><span>Sensibility</span><span>AI Agent</span></div></section>
-        <section id="early" className="story-panel story-panel-bridge"><h2>想法，是整个过程的罗盘。</h2><p>用 AI Agent 做出东西并不难，难的是构造一个有意义的想法、完整呈现，并让呈现本身能够教育用户。</p><dl className="facts"><div><dt>MVP</dt><dd>从兴趣开始探索</dd></div><div><dt>Coze</dt><dd>理解工具的边界</dd></div></dl></section>
-        <section id="build" className="story-panel story-panel-bazaar"><h2>实践，让理解保持具体。</h2><p>从 Vercel 上的设计试验，到新规文案输出和 Amazon BSR 抓取，踩坑、校准，再把工具交到用户手中。</p><a href="#future" className="note-button"><span aria-hidden="true">↗</span><span>继续查看未来</span></a></section>
-      </div></div>
+  return <main className="personal-field">
+    <section ref={sceneRef} className="field-scroll" id="top">
+      <div className="field-stage">
+        <div className="mountain-bg" />
+        <div className="mountain-shade" />
+        <FlowLines />
+
+        <header className="field-topbar">
+          <button className="field-wordmark" onClick={() => goTo(0)}>TONIO<span>.</span>YANG</button>
+          <nav><button onClick={() => goTo(650)}>理解</button><button onClick={() => goTo(1550)}>探索</button><button onClick={() => goTo(2600)}>未来</button><a href="mailto:317946126@qq.com" aria-label="联系我"><ArrowUpRight size={15} /></a></nav>
+        </header>
+
+        <section className="field-hero">
+          <div className="field-eyebrow">PERSONAL FIELD / 2026</div>
+          <h1>用 <em>Precision</em> 构建逻辑，<br />用 <em>Sensibility</em> 感受生活。</h1>
+          <p>你好，我是 Tonio.Yang。一个持续在产品、技术和人之间寻找更好连接方式的创造者。</p>
+        </section>
+        <aside className="field-contact"><span>CURRENTLY / BUILDING</span><p>把复杂的问题，转化为值得被使用的体验。</p><a href="mailto:317946126@qq.com">317946126@qq.com</a><a href="tel:15386438973">15386438973</a></aside>
+        <div className="field-scroll-cue"><span />SCROLL TO EXPLORE</div>
+
+        <section className="field-panel field-thesis">
+          <span className="panel-index">01 / UNDERSTANDING</span>
+          <h2>做出来不难，<br /><em>想清楚才难。</em></h2>
+          <p>不断 Vibe Coding 后，我发现用 AI Agent 做一个东西并不难。真正难的是构造一个有意义的想法、完整地呈现它，并让呈现的形式能够教育用户。</p>
+        </section>
+
+        <section className="field-panel field-journey" id="journey">
+          <span className="panel-index">02 / FROM MVP TO TOOL</span>
+          <h2>从感兴趣的 MVP 出发，<br />在踩坑中建立方法。</h2>
+          <div className="journey-grid"><div><b>前期</b><p>从“今天吃什么”的静态页，到无畏契约英雄选择和经济推荐，再到 Coze 的高成本与模型限制。</p></div><div><b>中期</b><p>在 Vercel 上完成评论、卖点、痛点、标题工具，并逐步做出新规文案和 Amazon BSR 抓取等可用工具。</p></div></div>
+        </section>
+
+        <section className="field-panel field-future">
+          <span className="panel-index">03 / NO FINAL PHASE</span>
+          <h2>没有后期。<br /><em>学无止境。</em></h2>
+          <p>通过开源项目接触不同知识与多种小工具，后续逐步将部分内容部署到国内 IP。AI 工具持续更新，Agent 门槛持续降低，争取吃到部分时代红利。</p>
+        </section>
+
+        <section className="field-slider" aria-label="项目无限滑块">
+          <div className="slider-heading"><span>04 / SELECTED EXPERIMENTS</span><h2>想法经过实践，<em>才有形状。</em></h2></div>
+          <div className={`field-track ${jumping ? "no-transition" : ""}`} ref={trackRef} style={{ transform: `translate3d(${trackX}px,0,0)` }} onTransitionEnd={normalize}>
+            {cards.map(({ project, index }) => <article className={`field-card ${active === index ? "active" : ""}`} key={index} tabIndex={0} onClick={() => updateSlider(index)}><span>{project[0]}</span><b>{String((index % projects.length) + 1).padStart(2, "0")}</b><h3>{project[1]}</h3><p>{project[2]}</p></article>)}
+          </div>
+          <div className="field-controls"><button onClick={() => updateSlider(active - 1)} aria-label="上一个项目"><ArrowLeft size={18} /></button><button onClick={() => updateSlider(active + 1)} aria-label="下一个项目"><ArrowRight size={18} /></button></div>
+        </section>
+      </div>
     </section>
-    <footer id="future" className="cinema-footer"><p>没有后期，学无止境。</p><h2>AI 工具持续更新，Agent 门槛持续降低。通过开源项目继续学习，并逐步把部分内容部署到国内 IP。</h2><div><a href="mailto:317946126@qq.com">317946126@qq.com</a><a href="tel:15386438973">15386438973</a></div></footer>
+    <footer className="field-footer"><span>TONIO.YANG / PERSONAL FIELD</span><div><a href="mailto:317946126@qq.com">317946126@qq.com</a><a href="tel:15386438973">15386438973</a></div></footer>
   </main>;
 }
